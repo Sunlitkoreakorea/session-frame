@@ -1,0 +1,63 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>연구자용: 기록 합치기</title>
+<style>
+  body { margin:0; background:#f6f7f5; color:#1d2420; font-family:"Apple SD Gothic Neo","Malgun Gothic","Noto Sans KR",sans-serif; font-size:15px; line-height:1.6; }
+  .wrap { max-width:1100px; margin:0 auto; padding:24px 16px 64px; }
+  .card { background:#fff; border:1px solid #d7ddd8; border-radius:8px; padding:18px; margin-bottom:16px; }
+  button { font:inherit; padding:9px 14px; border:1px solid #d7ddd8; border-radius:6px; background:#fff; cursor:pointer; }
+  button.primary { background:#0f6e8c; color:#fff; border-color:#0f6e8c; }
+  table { border-collapse:collapse; width:100%; font-size:13px; }
+  th, td { border:1px solid #d7ddd8; padding:5px 7px; text-align:left; white-space:nowrap; }
+  th { background:#f6f7f5; position:sticky; top:0; }
+  .scroll { overflow-x:auto; max-height:60vh; }
+  .muted { color:#5f6a64; font-size:13px; }
+  a { color:#0f6e8c; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>연구자용: 기록 합치기</h1>
+  <p>참가자가 보낸 <b>JSON 파일들</b>을 한꺼번에 고르면 한 줄씩 표로 만들고 CSV로 내려받습니다. 파일은 이 컴퓨터 안에서만 처리되고 어디로도 전송되지 않습니다.</p>
+  <div class="card">
+    <input type="file" id="files" multiple accept=".json,application/json">
+    <div style="margin-top:10px"><button class="primary" id="csv" disabled>CSV 내려받기</button> <span class="muted" id="msg"></span></div>
+  </div>
+  <div class="card"><div class="scroll"><table id="tbl"></table></div></div>
+  <p class="muted">열 뜻: err_A, err_B = 그 세션의 (예상 점수 − 객관식 점수). err_ai, err_exam 은 출처별 이름. delta = err_ai − err_exam. 서술형은 따로 채점해서 더합니다. <a href="index.html">참가자 페이지로</a></p>
+</div>
+<script>
+(function () {
+  const rows = [];
+  function flatten(r) {
+    const pre = r.pre_survey || {}; const out = { id: r.id, group: r.group, order: r.order, stage: r.stage, created: r.created || "",
+      main_app: pre.main_app || "", apps: (pre.apps || []).join("|"), freq: pre.freq || "", pre_trust: pre.trust ?? "", pre_verify: pre.verify ?? "", pre_confidence: pre.confidence ?? "" };
+    const errs = {};
+    for (const k of ["A", "B"]) { const s = (r.sessions || {})[k] || {}, m = s.metrics || {}, j = s.judge || {}, t = s.test || {}, w = s.warning || {}, p = s.practice || {};
+      const pred = j.predicted, pct = t.mc_pct; const err = (pred != null && pct != null) ? +(pred - pct).toFixed(1) : "";
+      Object.assign(out, { [`unit_${k}`]: s.unit || "", [`source_${k}`]: s.source || "", [`ai_app_${k}`]: s.ai_app || s.ai_app_other || "", [`ai_model_${k}`]: s.ai_model || "",
+        [`n_parsed_${k}`]: s.n_parsed ?? "", [`parse_ok_${k}`]: s.parse_ok ?? "", [`overlap4_${k}`]: m.mean_overlap4 ?? "", [`coverage_${k}`]: m.coverage_ratio ?? "", [`format_tv_${k}`]: m.format_tv_vs_past ?? "",
+        [`textbook_mentions_${k}`]: (m.textbook_mentions || []).length, [`warning_dwell_s_${k}`]: w.dwell_s ?? "", [`confirm_count_${k}`]: p.confirm_count ?? "", [`practice_min_${k}`]: p.elapsed_min ?? "",
+        [`predicted_${k}`]: pred ?? "", [`readiness_${k}`]: j.readiness ?? "", [`similar_${k}`]: j.similar ?? "", [`key_trust_${k}`]: j.key_trust ?? "",
+        [`mc_correct_${k}`]: t.mc_correct ?? "", [`mc_total_${k}`]: t.mc_total ?? "", [`mc_pct_${k}`]: pct ?? "", [`err_${k}`]: err });
+      if (s.source) errs[s.source] = err; }
+    out.err_ai = errs.ai ?? ""; out.err_exam = errs.exam ?? "";
+    out.delta = (typeof errs.ai === "number" && typeof errs.exam === "number") ? +(errs.ai - errs.exam).toFixed(1) : "";
+    const post = r.post_survey || {}; out.saw_errors = post.saw_errors || ""; out.used_ai_in_practice = post.used_ai_in_practice || "";
+    return out; }
+  function renderTable() { const tbl = document.getElementById("tbl"); if (!rows.length) { tbl.innerHTML = ""; return; }
+    const cols = Object.keys(rows[0]); tbl.innerHTML = "<tr>" + cols.map(c => `<th>${c}</th>`).join("") + "</tr>" + rows.map(r => "<tr>" + cols.map(c => `<td>${String(r[c] ?? "").replace(/</g, "&lt;")}</td>`).join("") + "</tr>").join(""); }
+  document.getElementById("files").addEventListener("change", async e => { rows.length = 0; let bad = 0;
+    for (const f of e.target.files) { try { const r = JSON.parse(await f.text()); if (!r.id || !r.sessions) throw 0; rows.push(flatten(r)); } catch (err) { bad++; } }
+    rows.sort((a, b) => a.id.localeCompare(b.id)); renderTable();
+    document.getElementById("msg").textContent = `${rows.length}명 읽음` + (bad ? `, 읽지 못한 파일 ${bad}개` : ""); document.getElementById("csv").disabled = !rows.length; });
+  document.getElementById("csv").onclick = () => { const cols = Object.keys(rows[0]); const q = v => { v = String(v ?? ""); return /[",\n]/.test(v) ? '"' + v.replace(/"/g, '""') + '"' : v; };
+    const csv = "﻿" + cols.join(",") + "\n" + rows.map(r => cols.map(c => q(r[c])).join(",")).join("\n");
+    const a = document.createElement("a"); a.href = URL.createObjectURL(new Blob([csv], { type: "text/csv" })); a.download = "participants.csv"; document.body.appendChild(a); a.click(); setTimeout(() => { URL.revokeObjectURL(a.href); a.remove(); }, 500); };
+})();
+</script>
+</body>
+</html>
