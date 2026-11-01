@@ -1,0 +1,22 @@
+{
+  "title": "통합과학2 공부 방법 연구",
+  "units": {
+    "A": "I-2 화학 변화",
+    "B": "II-1 생태계와 환경"
+  },
+  "prompt_template": "통합과학2 '{unit}' 단원(교과서 {pages}쪽) 범위로 단원평가 예상문제 20개를 만들어줘. 객관식 16개(5지선다, 각 문항에 정답 번호 표시)와 서술형 4개(모범답안 포함)로 하고, 문항마다 해설을 붙여줘. 교과서 내용 범위를 벗어나지 말아줘.",
+  "practice_minutes": 40,
+  "test_minutes": 25,
+  "min_items": 20,
+  "ai_options": [
+    "ChatGPT",
+    "Gemini",
+    "Claude",
+    "Perplexity",
+    "뤼튼",
+    "네이버 클로바",
+    "기타"
+  ],
+  "researcher_code": "CHANGE-ME",
+  "debrief": "(연구 설명문을 여기에 적는다. 참가자가 마지막에 읽는 글이다.)"
+}

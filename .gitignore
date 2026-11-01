@@ -1,0 +1,23 @@
+# 키와 비밀
+.env
+
+# 수집·생성된 자료 (올리지 않는다)
+data/generated/
+data/measured/
+data/objectives/
+data/self_preference/
+data/cache/
+data/logs/
+data/manual_raw/
+data/experiment/participants/
+data/experiment/assignments.csv
+data/experiment/export.csv
+prompts/
+
+# 파이썬
+__pycache__/
+*.pyc
+*.egg-info/
+build/
+dist/
+.venv/
