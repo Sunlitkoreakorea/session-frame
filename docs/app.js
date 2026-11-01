@@ -31,7 +31,11 @@
   }
   const key = pid => "frame:" + pid;
   function loadRec(pid) { try { const s = localStorage.getItem(key(pid)); return s ? JSON.parse(s) : null; } catch (e) { return null; } }
-  function saveRec(rec) { rec.updated = now(); try { localStorage.setItem(key(rec.id), JSON.stringify(rec)); } catch (e) { alert("이 브라우저에 저장할 수 없습니다. 연구자에게 알려 주세요."); } }
+  function saveRec(rec) { rec.updated = now(); try { localStorage.setItem(key(rec.id), JSON.stringify(rec)); } catch (e) { alert("이 브라우저에 저장할 수 없습니다. 연구자에게 알려 주세요."); } remoteSave(rec); }
+  // 연구자 노트북의 로컬 서버(local_server.py)가 있으면 기록을 그쪽에도 저장한다. 없으면(예: GitHub Pages) 조용히 넘어간다.
+  const remote = { ok: null };
+  function remoteSave(rec) { try { return fetch("save", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(rec) })
+    .then(r => { remote.ok = r.ok; return r.ok; }).catch(() => { remote.ok = false; return false; }); } catch (e) { remote.ok = false; return Promise.resolve(false); } }
   function advance(rec, to) { rec.events.push({ ts: now(), from: rec.stage, to }); rec.stage = to; saveRec(rec); render(); }
   const sessionKey = st => st.startsWith("s1") ? "A" : "B";
   const sessionSource = (rec, k) => { const first = rec.order === "ai_first" ? "ai" : "exam"; return k === "A" ? first : (first === "ai" ? "exam" : "ai"); };
@@ -183,7 +187,10 @@
       <div class="row" style="margin-top:12px"><button class="primary" id="go">확인했습니다. 연습 시작</button></div></div>`, rec);
     document.getElementById("go").onclick = () => { s.warning.confirmed_at = now(); s.warning.dwell_s = s.warning._t0 ? +((Date.now() - s.warning._t0) / 1000).toFixed(1) : null; delete s.warning._t0; advance(rec, `s${n}_practice`); }; }
 
-  function renderItems(items, showAnswers) { return items.map(it => `<div class="item"><div><b>${it.id}.</b> ${esc(it.stem)}</div>${it.options && it.options.length ? `<div class="opts">${it.options.map((o, i) => `<div>${i + 1}) ${esc(o)}</div>`).join("")}</div>` : ""}${showAnswers ? `<details><summary>정답과 해설</summary><p>정답: ${esc(it.answer || "(없음)")}</p>${it.explanation ? `<p>해설: ${esc(it.explanation)}</p>` : ""}</details>` : ""}</div>`).join(""); }
+  // 문항에 img 가 있으면 원본 문항 이미지를 보여 준다 (그림, 숫자, 화학식이 그대로 보이도록)
+  const itemBody = it => it.img ? `<div><b>${it.id}.</b></div><img class="qimg" src="${esc(it.img)}" alt="${it.id}번 문항">` : `<div><b>${it.id}.</b> ${esc(it.stem)}</div>${it.options && it.options.length ? `<div class="opts">${it.options.map((o, i) => `<div>${i + 1}) ${esc(o)}</div>`).join("")}</div>` : ""}`;
+  const ansText = a => /^[1-5]$/.test(String(a || "")) ? `${a}번` : (a || "(없음)");
+  function renderItems(items, showAnswers) { return items.map(it => `<div class="item">${itemBody(it)}${showAnswers ? `<details><summary>정답과 해설</summary><p>정답: ${esc(ansText(it.answer))}</p>${it.explanation ? `<p>해설: ${esc(it.explanation)}</p>` : ""}</details>` : ""}</div>`).join(""); }
 
   function pagePractice(rec) { const k = sessionKey(rec.stage), s = rec.sessions[k], unit = s.unit, n = k === "A" ? 1 : 2; const pr = s.practice;
     if (!pr.started_at) { pr.started_at = now(); pr._t0 = Date.now(); pr.confirm_count = 0; saveRec(rec); }
@@ -207,7 +214,7 @@
 
   function pageTest(rec) { const k = sessionKey(rec.stage), s = rec.sessions[k], unit = s.unit, items = D.tests[unit] || [];
     shell(`<h2>시험: ${esc(shortName(unit))} 단원 (${CFG.test_minutes}분)</h2><p class="muted">교과서, 필기, AI는 쓰지 않습니다. 모든 객관식에 답해야 제출됩니다.</p><div class="card">
-      ${items.map(it => it.type === "객관식" ? `<div class="item"><div><b>${it.id}.</b> ${esc(it.stem)}</div>${it.options.map((o, i) => `<label class="opt"><input type="radio" name="q${it.id}" value="${i + 1}">${i + 1}) ${esc(o)}</label>`).join("")}</div>` : `<div class="item"><div><b>${it.id}.</b> ${esc(it.stem)}</div><textarea id="sa${it.id}" style="min-height:90px"></textarea></div>`).join("")}
+      ${items.map(it => it.type === "객관식" ? `<div class="item">${it.img ? itemBody(it) : `<div><b>${it.id}.</b> ${esc(it.stem)}</div>`}<div class="row">${(it.options && it.options.length ? it.options : ["","","","",""]).map((o, i) => `<label class="opt" style="flex:1;min-width:${it.img ? "56px" : "100%"}"><input type="radio" name="q${it.id}" value="${i + 1}">${it.img ? CIRC[i] : `${i + 1}) ${esc(o)}`}</label>`).join("")}</div></div>` : `<div class="item">${itemBody(it)}<textarea id="sa${it.id}" style="min-height:90px"></textarea></div>`).join("")}
       <p class="err" id="test_err"></p><div class="row"><button class="primary" id="go">제출</button></div></div>`, rec);
     document.getElementById("go").onclick = () => { const answers = {}; const missing = [];
       items.forEach(it => { if (it.type === "객관식") { const r = document.querySelector(`input[name=q${it.id}]:checked`); answers[it.id] = r ? r.value : ""; if (!r) missing.push(it.id); } else answers[it.id] = val(`sa${it.id}`); });
@@ -226,10 +233,11 @@
       rec.post_survey = { saw_errors: saw.value, which: val("which"), used_ai_in_practice: used.value, comment: val("comment"), ts: now() }; advance(rec, "done"); }; }
 
   function pageDone(rec) { const json = JSON.stringify(rec, null, 1);
-    shell(`<div class="ok">참여해 주셔서 고맙습니다. 모든 과정이 끝났습니다.</div><div class="card"><h3>기록 파일 보내기</h3><p>아래 버튼을 누르면 <b>${esc(rec.id)}.json</b> 파일이 내려받아집니다. 그 파일을 연구자에게 보내 주세요. 내려받기가 안 되면 아래 상자의 내용을 전부 복사해서 보내도 됩니다.</p>
+    shell(`<div class="ok">참여해 주셔서 고맙습니다. 모든 과정이 끝났습니다.</div><div class="card"><h3>기록 보내기</h3><p id="rs" class="muted">저장 상태 확인 중...</p><p>아래 버튼을 누르면 <b>${esc(rec.id)}.json</b> 파일이 내려받아집니다. 연구자가 요청하면 그 파일을 보내 주세요. 내려받기가 안 되면 아래 상자의 내용을 전부 복사해서 보내도 됩니다.</p>
       <div class="row"><button class="primary" id="dl">JSON 파일 내려받기</button><button id="cp">내용 복사</button><span class="muted" id="cpmsg"></span></div>
       <textarea id="json" style="min-height:160px;margin-top:10px" readonly>${esc(json)}</textarea></div>
       <div class="card"><h3>연구 설명</h3><p>${esc(CFG.debrief)}</p><p class="muted">이 창은 닫아도 됩니다.</p></div>`, rec);
+    remoteSave(rec).then(ok => { const el = document.getElementById("rs"); if (el) el.textContent = ok ? "기록이 연구자 컴퓨터에 자동 저장되었습니다. 파일 내려받기는 예비용입니다." : "자동 저장 서버가 없습니다. 아래에서 파일을 내려받아 연구자에게 보내 주세요."; });
     document.getElementById("dl").onclick = () => download(`${rec.id}.json`, json);
     document.getElementById("cp").onclick = () => { navigator.clipboard.writeText(json).then(() => document.getElementById("cpmsg").textContent = "복사됨", () => { const t = document.getElementById("json"); t.select(); document.getElementById("cpmsg").textContent = "상자 내용을 Ctrl+C 로 복사하세요"; }); }; }
 
