@@ -1,4 +1,4 @@
-"""2단계 참가자용 실험 페이지. API를 쓰지 않는다.
+"""참가자 진행 페이지. API를 쓰지 않는다.
 
 실행: streamlit run app/experiment.py  (mockgap/ 폴더에서)
 실습실에서는 연구자 노트북에서 띄우고 같은 와이파이의 주소(Network URL)로 참가자가 접속한다.
@@ -25,7 +25,7 @@ from mockgap.local_tools import local_metrics, parse_ai_output  # noqa: E402
 from mockgap.metrics import FORMATS, classify_format  # noqa: E402
 from mockgap.textbook import load_units, unit_text  # noqa: E402
 
-st.set_page_config(page_title="통합과학2 공부 방법 연구", layout="centered")
+st.set_page_config(page_title="진행 페이지", layout="centered")
 
 cfg = load_config()
 EXP_DIR = Path(cfg["data_dir"]) / "experiment"

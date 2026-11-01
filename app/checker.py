@@ -1,4 +1,4 @@
-"""8번 단계: 예상문제 현실성 검사기 (1차 버전).
+"""세트 검사 페이지.
 
 실행:  streamlit run app/checker.py      (mockgap/ 폴더에서)
 API 키가 없어도 베끼기 점수와 형식 분포는 계산된다. 범위 적합도와 교차 모델 검증은 'API 사용'을 켜야 한다.
@@ -32,9 +32,9 @@ from mockgap.metrics import (  # noqa: E402
 )
 from mockgap.textbook import get_objectives, load_units, split_sentences, unit_text  # noqa: E402
 
-st.set_page_config(page_title="예상문제 현실성 검사기", layout="wide")
-st.title("예상문제 현실성 검사기")
-st.caption("AI가 만든 예상문제가 교과서 범위와 실제 시험 형식에서 얼마나 떨어져 있는지 보여준다. LLM이 스스로 붙인 난이도 라벨은 쓰지 않는다.")
+st.set_page_config(page_title="세트 검사기", layout="wide")
+st.title("세트 검사기")
+st.caption("붙여 넣은 문항 세트의 지표를 보여준다.")
 
 cfg = load_config()
 units_all = load_units(cfg["textbook_dir"])

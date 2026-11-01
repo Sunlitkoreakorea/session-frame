@@ -1,9 +1,9 @@
 """API 없이 돌아가는 도구들.
 
-- parse_ai_output(): 챗 앱(ChatGPT, Gemini, Claude 등)에서 복사한 예상문제 텍스트를 문항 목록으로 쪼갠다.
+- parse_ai_output(): 챗 앱에서 복사한 문항 텍스트를 문항 목록으로 쪼갠다.
   번호 매김, ①~⑤ 또는 1)~5) 보기, '정답:', '해설:' 줄을 알아본다. 완벽하지 않으므로 원문은 항상 같이 저장한다.
 - assign_objectives_local(): 글자 n-gram 겹침으로 문항을 학습목표에 근사 배정한다. LLM 태깅의 대용이며 '근사'라고 표시한다.
-- local_metrics(): 실험 페이지의 경고 화면에 쓰는 지표 묶음.
+- local_metrics(): 진행 페이지의 검사 화면에 쓰는 지표 묶음.
 """
 from __future__ import annotations
 

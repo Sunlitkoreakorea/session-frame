@@ -1,4 +1,4 @@
-"""챗 앱(ChatGPT, Gemini, Claude)에서 손으로 받은 예상문제를 파이프라인 세트로 저장한다.
+"""손으로 받은 문항 텍스트를 파이프라인 세트로 저장한다.
 
 사용 예:
   python -m mockgap.import_manual --unit "I-2 화학 변화" --provider openai --file 받은답.txt --model "ChatGPT 앱 2026-11-01"

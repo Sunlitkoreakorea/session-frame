@@ -5,7 +5,7 @@ build-backend = "setuptools.build_meta"
 [project]
 name = "mockgap"
 version = "0.1.0"
-description = "AI 예상문제 세트 검사 도구와 공부 방법 실험 페이지의 뼈대"
+description = "Streamlit 진행 페이지와 텍스트 세트 분석 스크립트 뼈대"
 requires-python = ">=3.10"
 dependencies = [
   "anthropic>=1.0",
