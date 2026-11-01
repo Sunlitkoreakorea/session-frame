@@ -45,7 +45,9 @@ def now() -> str:
 def load_assignments() -> dict:
     p = EXP_DIR / "assignments.csv"
     if not p.exists():
-        return {}
+        # 배정표가 없으면(예: 클라우드 호스팅) 기본 60명 배정표를 만든다
+        from mockgap.make_assignments import main as make
+        make(["--n", "60"])
     with open(p, encoding="utf-8-sig", newline="") as f:
         return {r["id"].strip().upper(): r for r in csv.DictReader(f)}
 
